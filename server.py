@@ -1,14 +1,14 @@
 import socket, random   
 from common import *             
 
-LOSS = 0.10   
+LOSS = 0.05
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # AF_INET = IPv4 
 sock.bind((HOST, PORT)) # associa o socket ao endereço e porta do server
 print(f"Servidor em {HOST}:{PORT}  |  perda simulada = {LOSS*100:.0f}%\n")  
 
 # three way handshake
-while True: # loop ate receber SYN
+while True: 
     raw, addr = sock.recvfrom(MAX_PKT) # recebe segmento e endereço do cliente
     p = unpack(raw)                                    
     if p and p['S'] and not p['A']: # verifica se é SYN (flag S=1, A=0) (common.py)
@@ -39,7 +39,8 @@ while True:
         print("Timeout — encerrando.")      
         break                             
 
-    p = unpack(raw)                        
+    p = unpack(raw)                 
+           
     if not p:                             
         continue                        
 
@@ -51,7 +52,7 @@ while True:
 
     if p['seq'] == expected: # segmento chegou na ordem
 
-        # se tinha perda pendente esse segmento foi retransmitido
+        # se tinha perda pendente o segmento foi retransmitido
         if drop_next:
             drop_next = False
             total += p['dlen']  
@@ -61,14 +62,14 @@ while True:
             print(f"  [RETRANS OK] seq={p['seq']:5d} → ACK={expected}") 
             continue                                               
 
-        next_ack = (expected + p['dlen']) % MOD # calcula próximo ACK esperado
-
         # sorteia nova perda (não envia ACK nem avança expected)
         if random.random() < LOSS:
             drop_next = True                                  
             last_ack_sent = expected # o ultimo ack enviado é do segmento perdido (nao avanca)
             print(f"  [PERDA SIMULADA] seq={p['seq']:5d} — próximos pacotes gerarão ACK dup")
             continue
+
+        next_ack = (expected + p['dlen']) % MOD # calcula próximo ACK esperado
 
         total += p['dlen']  
 

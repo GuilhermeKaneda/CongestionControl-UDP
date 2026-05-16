@@ -60,6 +60,16 @@ Cada iteração do `while base < total` é um RTT. O fluxo é:
 
 `base`, `off` e `last_ack_off` são todos índices dentro do array `data`:
 
+**off:**
+
+```
+isn = 5000
+isn + 1 = 5001  ← seq do primeiro byte de dados
+
+ACK=6001  → ack_off = 6001 - 5001 = 1000
+ACK=7001  → ack_off = 7001 - 5001 = 2000
+```
+
 ```
 data: [====confirmado====|----in flight----|...não enviado...]
                          ↑                ↑
@@ -68,13 +78,20 @@ data: [====confirmado====|----in flight----|...não enviado...]
           last_ack_off  (avança com cada ACK)
 ```
 
-- `base` — primeiro byte ainda não confirmado; onde a janela começa
+```
+  off=0,    off-base = 0    < 3000 ✅ → envia pkt 1
+  off=1000, off-base = 1000 < 3000 ✅ → envia pkt 2
+  off=2000, off-base = 2000 < 3000 ✅ → envia pkt 3
+  off=3000, off-base = 3000 < 3000 ❌ → PARA. Janela cheia!
+```
+
+- `base` — primeiro byte ainda não confirmado (onde a janela começa)
 - `off` — cursor de envio; avança enquanto `(off - base) < cwnd`
 - `last_ack_off` — até onde o servidor já confirmou nesse RTT
 
 A conversão entre offset e número de sequência TCP é:
 ```python
-seq     = (isn + 1 + off) % MOD   # offset → seq
+seq = (isn + 1 + off) % MOD   # offset → seq
 ack_off = (ack - (isn + 1)) % MOD # seq    → offset
 ```
 
